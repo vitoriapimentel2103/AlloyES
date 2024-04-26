@@ -1,0 +1,119 @@
+//Relações e dependências
+
+sig Usuario {
+  nome: one String,
+  email: one String,
+  password: one String,
+  dataNascimento: one Date,
+  matricula: one String,
+  periodoMatriculado: one String
+}
+
+sig Evento {
+  nome: one String,
+  data: one Date,
+  horarioInicio: one String,
+  horarioFim: one String,
+  recorrente: one Bool,
+  proximasDatas: one Int
+}
+
+sig Disciplina {
+  nome: one String,
+  periodo: one String,
+  sigla: one String,
+  creditos: one String,
+  preRequisitos: set Disciplina
+}
+
+sig SalaVirtual {
+  nome: one String,
+  disciplina: one String,
+  link: one String
+}
+
+sig AtividadeComplementar {
+  nome: one String,
+  tipo: one String,
+  duracao: one String,
+  creditos: one Int
+}
+
+sig Curso {
+  disciplinas: set Disciplina
+}
+
+sig Historico {
+  cra: one Float,
+  cadeiras: set Disciplina,
+  creditosObrigatoriosPagos: one Int,
+  creditosComplementaresPagos: one Int
+}
+
+abstract sig Repository {}
+sig UsuarioRepository extends Repository {
+  usuarios: set Usuario
+}
+sig CalendarioRepository extends Repository {
+  eventos: set Evento
+}
+sig DisciplinaRepository extends Repository {
+  disciplinas: set Disciplina
+}
+sig SalaVirtualRepository extends Repository {
+  salasVirtuais: set SalaVirtual
+}
+sig AtividadeComplementarRepository extends Repository {
+  atividades: set AtividadeComplementar
+}
+sig CursoRepository extends Repository {
+  cursos: set Curso
+}
+sig HistoricoRepository extends Repository {
+  historicos: set Historico
+}
+
+//Nossas regras e Invariantes
+
+fact preRequisitosValidos {
+  all d: Disciplina | d.preRequisitos in Disciplina
+}
+
+fact usuariosUnicos {
+  all u1, u2: Usuario | u1 != u2 implies u1.email != u2.email
+}
+
+fact eventosUnicosPorData {
+  all e1, e2: Evento | e1 != e2 && e1.data = e2.data implies e1.horarioInicio != e2.horarioInicio
+}
+
+//Comportamentos do nosso Sistema (Mais específicas)
+
+pred adicionarUsuario[u: UsuarioRepository, user: Usuario] {
+  not user in u.usuarios
+  u.usuarios' = u.usuarios + user
+}
+
+pred removerUsuario[u: UsuarioRepository, user: Usuario] {
+  user in u.usuarios
+  u.usuarios' = u.usuarios - user
+}
+
+pred adicionarEvento[r: CalendarioRepository, e: Evento] {
+  not e in r.eventos
+  r.eventos' = r.eventos + e
+}
+
+// Verificação de comportamentos
+
+assert NoEventTimeConflict {
+  all e1, e2: Evento | e1 != e2 && e1.data = e2.data implies e1.horarioInicio != e2.horarioInicio
+}
+
+assert UniqueEmails {
+  all u1, u2: Usuario | u1 != u2 implies u1.email != u2.email
+}
+
+check NoEventTimeConflict for 4 but 3 Evento
+check UniqueEmails for 4 but 3 Usuario
+
